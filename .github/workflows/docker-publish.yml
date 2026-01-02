@@ -34,14 +34,6 @@ jobs:
       id-token: write
 
     steps:
-
-      - name: free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /us r/local/share/boost
-          docker system prune -af
-
       - name: Checkout repository
         uses: actions/checkout@v4
 

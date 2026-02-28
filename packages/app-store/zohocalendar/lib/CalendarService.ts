@@ -115,6 +115,7 @@ class ZohoCalendarService implements Calendar {
   };
 
   async createEvent(event: CalendarServiceEvent): Promise<NewCalendarEventType> {
+    this.log.info("MIK -- we will be creating an event in the calendar event of someone");
     let eventId = "";
     let eventRespData;
     const [mainHostDestinationCalendar] = event.destinationCalendar ?? [];
@@ -229,6 +230,12 @@ class ZohoCalendarService implements Calendar {
         headers: {
           etag: existingEventData.events[0].etag,
         },
+        body: JSON.stringify({
+          eventdata: {
+            uid,
+            notify_attendee: 0,
+          },
+        }),
       });
       await this.handleData(response, this.log);
     } catch (error) {
@@ -481,6 +488,7 @@ class ZohoCalendarService implements Calendar {
             uid: event.uid,
           })
         : undefined,
+      notify_attendee: 0,
     };
 
     return zohoEvent;

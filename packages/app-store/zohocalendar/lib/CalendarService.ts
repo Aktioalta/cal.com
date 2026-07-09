@@ -115,7 +115,7 @@ class ZohoCalendarService implements Calendar {
   };
 
   async createEvent(event: CalendarServiceEvent): Promise<NewCalendarEventType> {
-    this.log.info("MIK -- we will be creating an event in the calendar event of someone");
+    this.log.error("MIK -- we will be creating an event in the calendar event of someone");
     let eventId = "";
     let eventRespData;
     const [mainHostDestinationCalendar] = event.destinationCalendar ?? [];
@@ -126,6 +126,7 @@ class ZohoCalendarService implements Calendar {
 
     try {
       const query = stringify({
+        sendnotification: 0,
         eventdata: JSON.stringify(this.translateEvent(event)),
       });
 
@@ -176,6 +177,7 @@ class ZohoCalendarService implements Calendar {
       const existingEventData = await this.handleData(existingEventResponse, this.log);
 
       const query = stringify({
+        sendnotification: 0,
         eventdata: JSON.stringify({
           ...this.translateEvent(event),
           etag: existingEventData.events[0].etag,

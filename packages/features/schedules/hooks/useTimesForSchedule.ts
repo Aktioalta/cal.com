@@ -121,7 +121,7 @@ export const useTimesForSchedule = ({
     const monthsToPrefetch = prefetchData?.monthsToPrefetch;
     const lastMonthToPrefetchDayjs = monthsToPrefetch ? monthDayjs.add(monthsToPrefetch, "month") : null;
     startTime = monthDayjs.startOf("month").toISOString();
-    endTime = (lastMonthToPrefetchDayjs ? lastMonthToPrefetchDayjs : monthDayjs).endOf("month").toISOString();
+    endTime = (lastMonthToPrefetchDayjs ? lastMonthToPrefetchDayjs : monthDayjs).endOf("month").add(1, "day").toISOString();
   }
   return [startTime, endTime];
 };

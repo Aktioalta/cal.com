@@ -15,7 +15,7 @@ on:
 
 env:
   # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
+  REGISTRY: 10.10.17.161:5000
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
 
@@ -77,8 +77,9 @@ jobs:
           context: .
           push: true
           tags: |
-            10.10.17.161:5000/aktioalta/cal.com:${{ steps.meta.outputs.tags }}
+            ${{ steps.meta.outputs.tags }}
             10.10.17.161:5000/aktioalta/cal.com:latest
+          labels: ${{ steps.meta.outputs.labels }}
 
 
       # Sign the resulting Docker image digest except on PRs.

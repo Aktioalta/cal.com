@@ -30,6 +30,8 @@ class ZohoCalendarService implements Calendar {
     this.log = logger.getSubLogger({
       prefix: [`[[lib] ${this.integrationName}`],
     });
+});
+
   }
 
   private zohoAuth = (credential: CredentialPayload) => {
@@ -38,6 +40,14 @@ class ZohoCalendarService implements Calendar {
     const refreshAccessToken = async () => {
       try {
         const appKeys = await getAppKeysFromSlug("zohocalendar");
+
+this.log.debug("Zoho App Keys loaded in dev:", {
+  clientIdPreview: appKeys?.client_id ? `${appKeys.client_id.substring(0, 6)}...` : undefined,
+  rawKeys: appKeys,
+});
+
+
+
         const { client_id, client_secret } = zohoKeysSchema.parse(appKeys);
         const server_location = zohoCredentials.server_location;
         const params = {

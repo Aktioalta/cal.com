@@ -42,11 +42,15 @@ class ZohoCalendarService implements Calendar {
 
 const clientId = typeof appKeys?.client_id === "string" ? appKeys.client_id : undefined;
 
-this.log.debug("Zoho App Keys loaded in dev:", {
-  clientIdPreview: clientId ? `${clientId.substring(0, 6)}...` : undefined,
-  rawKeys: appKeys,
-});
+const appKeys = await getAppKeysFromSlug("zohocalendar");
+const { client_id, client_secret } = zohoKeysSchema.parse(appKeys);
 
+// Utiliser console.log force l'écriture brute dans le stdout du conteneur Docker, 
+// contournant le filtre de niveau WARN de Cal.com.
+console.log("========================================");
+console.log("[ZOHO DEBUG DEV] Client ID actif :", client_id);
+console.log("[ZOHO DEBUG DEV] Server location :", zohoCredentials.server_location);
+console.log("========================================");
 
         const { client_id, client_secret } = zohoKeysSchema.parse(appKeys);
         const server_location = zohoCredentials.server_location;

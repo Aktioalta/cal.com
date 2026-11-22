@@ -7,34 +7,38 @@ on:
     paths:
       - 'apps/api/v2/**'
       - 'packages/prisma/**'
-      - '.github/workflows/docker-publish-api-v2.yml' # ajuste le nom si différent
+      - '.github/workflows/docker-publish-api-v2.yml'
+
+env:
+  REGISTRY: 10.10.17.161:5000
+  IMAGE_NAME: ${{ github.repository }}-api-v2
 
 jobs:
   build-api-v2:
     runs-on: self-hosted
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate version tag (YYYYMMDD.iteration)
-        id: tag
+      - name: Generate version tag and image name
+        id: meta
         run: |
           DATE=$(date +%Y%m%d)
+          IMAGE=$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
           echo "version=${DATE}.${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+          buildkitd-config-inline: |
+            [registry."10.10.17.161:5000"]
+              http = true
+              insecure = true
 
       - name: Build and push api-v2
         uses: docker/build-push-action@v6
@@ -43,8 +47,8 @@ jobs:
           file: ./apps/api/v2/Dockerfile
           push: true
           tags: |
-            ghcr.io/mickaelbeaudry/calcom-api-v2:${{ steps.tag.outputs.version }}
-            ghcr.io/mickaelbeaudry/calcom-api-v2:latest
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache-cal-apiv2
           cache-to: type=local,dest=/tmp/.buildx-cache-cal-apiv2-new,mode=max
 

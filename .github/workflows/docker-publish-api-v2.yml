@@ -3,10 +3,11 @@ name: Build & Push Cal.diy API v2
 on:
   workflow_dispatch:
   push:
-    branches: [ main, "develop/*", "release/*" ]
+    branches: [ main, develop, "develop/*", "release/*" ]
     paths:
       - 'apps/api/v2/**'
       - 'packages/prisma/**'
+      - '.github/workflows/docker-publish-api-v2.yml' # ajuste le nom si différent
 
 jobs:
   build-api-v2:

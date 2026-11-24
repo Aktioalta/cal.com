@@ -30,6 +30,10 @@ class ZohoCalendarService implements Calendar {
     this.log = logger.getSubLogger({
       prefix: [`[[lib] ${this.integrationName}`],
     });
+    console.log("[ZohoCalendar][PATCH-V2] Service initialized", {
+      credentialId: credential.id,
+      server_location: (credential.key as ZohoAuthCredentials)?.server_location,
+    });
   }
 
   private zohoAuth = (credential: CredentialPayload) => {
@@ -90,7 +94,13 @@ class ZohoCalendarService implements Calendar {
 
   private fetcher = async (endpoint: string, init?: RequestInit | undefined) => {
     const credentials = await this.auth.getToken();
-    return fetch(`https://calendar.zoho.${credentials.server_location}/api/v1${endpoint}`, {
+    const url = `https://calendar.zoho.${credentials.server_location}/api/v1${endpoint}`;
+    console.log("[ZohoCalendar][PATCH-V2] HTTP Request", {
+      method: init?.method ?? "GET",
+      url,
+      extraHeaders: init?.headers ?? {},
+    });
+    return fetch(url, {
       method: "GET",
       ...init,
       headers: {
@@ -124,8 +134,19 @@ class ZohoCalendarService implements Calendar {
     }
 
     try {
+      const payload = {
+        ...this.translateEvent(event),
+        notify_attendee: 0,
+      };
+      console.log("[ZohoCalendar][PATCH-V2] createEvent start", {
+        calendarId,
+        bookingUid: event.uid,
+        attendeesCount: event.attendees?.length,
+        payload,
+      });
       const query = stringify({
-        eventdata: JSON.stringify(this.translateEvent(event)),
+        eventdata: JSON.stringify(payload),
+        notify_attendee: 0,
       });
 
       const eventResponse = await this.fetcher(`/calendars/${calendarId}/events?${query}`, {
@@ -133,7 +154,13 @@ class ZohoCalendarService implements Calendar {
       });
       eventRespData = await this.handleData(eventResponse, this.log);
       eventId = eventRespData.events[0].uid as string;
+      console.log("[ZohoCalendar][PATCH-V2] createEvent success", {
+        eventId,
+        notifyType: eventRespData?.events?.[0]?.notifyType,
+        response: eventRespData,
+      });
     } catch (error) {
+      console.error("[ZohoCalendar][PATCH-V2] createEvent error", error);
       this.log.error(error);
       throw error;
     }
@@ -174,18 +201,33 @@ class ZohoCalendarService implements Calendar {
       const existingEventResponse = await this.fetcher(`/calendars/${calendarId}/events/${uid}`);
       const existingEventData = await this.handleData(existingEventResponse, this.log);
 
+      const payload = {
+        ...this.translateEvent(event),
+        etag: existingEventData.events[0].etag,
+        notify_attendee: 0,
+      };
+      console.log("[ZohoCalendar][PATCH-V2] updateEvent start", {
+        calendarId,
+        uid,
+        etag: existingEventData.events[0].etag,
+        payload,
+      });
       const query = stringify({
-        eventdata: JSON.stringify({
-          ...this.translateEvent(event),
-          etag: existingEventData.events[0].etag,
-        }),
+        eventdata: JSON.stringify(payload),
+        notify_attendee: 0,
       });
 
       const eventResponse = await this.fetcher(`/calendars/${calendarId}/events/${uid}?${query}`, {
         method: "PUT",
       });
       eventRespData = await this.handleData(eventResponse, this.log);
+      console.log("[ZohoCalendar][PATCH-V2] updateEvent success", {
+        uid,
+        notifyType: eventRespData?.events?.[0]?.notifyType,
+        response: eventRespData,
+      });
     } catch (error) {
+      console.error("[ZohoCalendar][PATCH-V2] updateEvent error", error);
       this.log.error(error);
       throw error;
     }
@@ -224,14 +266,34 @@ class ZohoCalendarService implements Calendar {
       const existingEventResponse = await this.fetcher(`/calendars/${calendarId}/events/${uid}`);
       const existingEventData = await this.handleData(existingEventResponse, this.log);
 
-      const response = await this.fetcher(`/calendars/${calendarId}/events/${uid}`, {
+      const payload = {
+        uid,
+        etag: existingEventData.events[0].etag,
+        notify_attendee: 0,
+      };
+      console.log("[ZohoCalendar][PATCH-V2] deleteEvent start", {
+        calendarId,
+        uid,
+        payload,
+      });
+      const query = stringify({
+        eventdata: JSON.stringify(payload),
+        notify_attendee: 0,
+      });
+
+      const response = await this.fetcher(`/calendars/${calendarId}/events/${uid}?${query}`, {
         method: "DELETE",
         headers: {
           etag: existingEventData.events[0].etag,
         },
       });
-      await this.handleData(response, this.log);
+      const deleteRespData = await this.handleData(response, this.log);
+      console.log("[ZohoCalendar][PATCH-V2] deleteEvent success", {
+        uid,
+        response: deleteRespData,
+      });
     } catch (error) {
+      console.error("[ZohoCalendar][PATCH-V2] deleteEvent error", error);
       this.log.error(error);
       throw error;
     }
@@ -448,6 +510,12 @@ class ZohoCalendarService implements Calendar {
 
   async handleData(response: Response, log: typeof logger) {
     const data = await response.json();
+    console.log("[ZohoCalendar][PATCH-V2] handleData", {
+      status: response.status,
+      ok: response.ok,
+      url: response.url,
+      data,
+    });
     if (!response.ok) {
       log.debug("zoho request with data", data);
       throw data;

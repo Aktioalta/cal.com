@@ -1,0 +1,58 @@
+name: Build & Push Cal.diy API v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, develop, "develop/*", "release/*" ]
+    paths:
+      - 'apps/api/v2/**'
+      - 'packages/prisma/**'
+      - '.github/workflows/docker-publish-api-v2.yml'
+
+env:
+  REGISTRY: 10.10.17.161:5000
+  IMAGE_NAME: ${{ github.repository }}-api-v2
+
+jobs:
+  build-api-v2:
+    runs-on: self-hosted
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate version tag and image name
+        id: meta
+        run: |
+          DATE=$(date +%Y%m%d)
+          IMAGE=$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+          echo "version=${DATE}.${GITHUB_RUN_NUMBER}" >> $GITHUB_OUTPUT
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+          buildkitd-config-inline: |
+            [registry."10.10.17.161:5000"]
+              http = true
+              insecure = true
+
+      - name: Build and push api-v2
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/api/v2/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=local,src=/tmp/.buildx-cache-cal-apiv2
+          cache-to: type=local,dest=/tmp/.buildx-cache-cal-apiv2-new,mode=max
+
+      - name: Rotate local cache
+        run: |
+          rm -rf /tmp/.buildx-cache-cal-apiv2
+          mv /tmp/.buildx-cache-cal-apiv2-new /tmp/.buildx-cache-cal-apiv2

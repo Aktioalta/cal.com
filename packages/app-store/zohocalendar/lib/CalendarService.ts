@@ -478,7 +478,7 @@ class ZohoCalendarService implements Calendar {
         timezone: event.organizer.timeZone,
       },
       // Workaround: Zoho Calendar API ignores notify_attendee=0 and still emails attendees
-      attendees: [],
+      attendees: undefined,
       isprivate: event.hideCalendarEventDetails ?? false,
       reminders: [
         {
